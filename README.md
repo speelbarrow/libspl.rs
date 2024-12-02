@@ -1,4 +1,4 @@
-# libspl.rs
+# libspl.rs [![CI](https://github.com/speelbarrow/libspl.rs/actions/workflows/ci.yml/badge.svg)](https://github.com/speelbarrow/libspl.rs/actions/workflows/ci.yml)
 *pron. lib speel dot ar es*
 
 A library. You know, for doing things with.

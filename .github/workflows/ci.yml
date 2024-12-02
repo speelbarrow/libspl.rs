@@ -1,6 +1,14 @@
 name: CI
 on:
   push:
+    paths:
+      - '**.rs'
+      - '**Cargo.toml'
+      - .github/workflows/ci.yml
+      - .github/actions/*/action.yml
+    branches: [ '**' ]
+    tags-ignore: [ '**' ]
+  workflow_call:
 
 jobs:
   test:
