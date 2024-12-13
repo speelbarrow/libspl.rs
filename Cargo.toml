@@ -1,6 +1,6 @@
 [package]
 name = "libspl"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Noah Friedman <speelbarrow@speely.net>"]
 
@@ -11,9 +11,10 @@ ssh = ["dep:openssh"]
 tcp = ["tokio/net", "tokio/macros"]
 
 [dependencies]
-openssh = { version = "0.11.2", optional = true, default-features = false, features = ["native-mux"] }
-tokio = { version = "1.40.0", features = ["io-util", "io-std", "time", "sync"] }
+openssh = { version = "0.11.4", optional = true, default-features = false, features = ["native-mux"] }
+tokio = { version = "1.42.0", features = ["io-util", "io-std", "time", "sync"] }
 trait-variant = "0.1.2"
 
 [dev-dependencies]
-tokio = { version = "1.40.0", features = ["rt-multi-thread"] }
+rand = "0.8.5"
+tokio = { version = "1.42.0", features = ["rt-multi-thread"] }
