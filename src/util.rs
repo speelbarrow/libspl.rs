@@ -21,26 +21,26 @@ Parses a number into a [byte](u8) vector where each byte holds the value of a he
 input.
 */
 #[trait_variant::make(Send)]
-pub trait HexToBytes: LowerHex {
-    async fn hex_to_bytes(&self) -> Vec<u8>;
-}
-impl<T: ?Sized + Send + Sync + LowerHex> HexToBytes for T {
+pub trait HexToBytes: LowerHex + Sync {
     async fn hex_to_bytes(&self) -> Vec<u8> {
-        let s = {
-            let mut r = format!("{:x}", self);
-            if r.len() % 2 == 1 {
-                r = "0".to_owned() + &r
+        async move {
+            let s = {
+                let mut r = format!("{:x}", self);
+                if r.len() % 2 == 1 {
+                    r = "0".to_owned() + &r
+                }
+                r
+            };
+
+            let mut r = Vec::new();
+            for chunk in s.as_bytes().chunks(2) {
+                r.push(u8::from_str_radix(&String::from_utf8(chunk.to_vec()).unwrap(), 16).unwrap())
             }
             r
-        };
-
-        let mut r = Vec::new();
-        for chunk in s.as_bytes().chunks(2) {
-            r.push(u8::from_str_radix(&String::from_utf8(chunk.to_vec()).unwrap(), 16).unwrap())
         }
-        r
     }
 }
+impl<T: ?Sized + Send + Sync + LowerHex> HexToBytes for T {}
 
 /// Describes which side of an array should be padded/truncated. See [`Pad`].
 pub enum Side {
@@ -116,8 +116,12 @@ where
         }
     }
 }
-impl<const INITIAL: usize> Pad for [u8; INITIAL] {}
-impl Pad for Vec<u8> {}
+impl<T> Pad for T
+where
+    T: Sync + Send + IntoIterator<Item = u8>,
+    <T as IntoIterator>::IntoIter: DoubleEndedIterator,
+{
+}
 
 #[cfg(test)]
 mod tests {
