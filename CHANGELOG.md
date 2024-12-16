@@ -1,5 +1,18 @@
 # CHANGELOG
 
+### [v0.3.0](https://github.com/speelbarrow/libspl.rs/tree/v0.3.0)
+- Move [`util`](https://github.com/speelbarrow/libspl.rs/blob/v0.2.2/src/util.rs) module contents
+  into [`lib.rs`](https://github.com/speelbarrow/libspl.rs/blob/v0.3.0/src/lib.rs)
+- Rename [`common`](https://github.com/speelbarrow/libspl.rs/blob/v0.2.2/src/common.rs) module to
+  [`interaction`](https://github.com/speelbarrow/libspl.rs/blob/v0.3.0/src/interaction/mod.rs), move
+  [`tcp`](https://github.com/speelbarrow/libspl.rs/blob/v0.2.2/src/tcp.rs) and
+  [`ssh`](https://github.com/speelbarrow/libspl.rs/blob/v0.2.2/src/ssh.rs) modules into
+  [`interaction`](https://github.com/speelbarrow/libspl.rs/blob/v0.3.0/src/interaction) namespace
+- Unify connection semantics for
+  [`interaction`](https://github.com/speelbarrow/libspl.rs/blob/v0.3.0/src/interaction) submodules
+- Replace [`connect`](https://github.com/speelbarrow/libspl.rs/blob/v0.2.2/src/common.rs#L146) macro
+  with [`interact`](https://github.com/speelbarrow/libspl.rs/blob/v0.3.0/src/interaction/mod.rs#L166)
+
 ### [v0.2.2](https://github.com/speelbarrow/libspl.rs/tree/v0.2.2)
 - Add [`Repeat`](https://github.com/speelbarrow/libspl.rs/blob/v0.2.2/src/util.rs#L133) trait
 

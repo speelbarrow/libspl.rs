@@ -8,6 +8,13 @@ use tokio::{
     time::timeout,
 };
 
+pub mod ssh;
+pub mod tcp;
+/// For compatibility with [`interact`].
+pub mod leak {
+    pub use super::ssh::connect_leak as connect;
+}
+
 /// A remote stream that takes input.
 #[trait_variant::make(Send)]
 pub trait Interaction: AsyncReadExt + AsyncWriteExt + Unpin + Sized {
@@ -124,33 +131,40 @@ async fn write(
 }
 
 /**
-Shorthand for commonly used connection semantics.
+Shorthand for creating new [Interaction]s.
 
-Recommended recipe:
-```no_run
-use libspl::{connect, ssh::{Session, KnownHosts}};
+Supported recipes:
+- [`tcp`]
+  ```no_run
+  use libspl::interact;
 
-# #[tokio::main]
-# async fn main() {
-#[allow(unused)]
-let session = Session::connect_mux("remote.host.org", KnownHosts::Strict).await.unwrap();
-// Remove the comment on this line ...
-let mut handle = // connect!(@ssh session, "/path/to/executable").await.unwrap();
-    // connect!(@leak session, "/path/to/executable").await.unwrap();   // ... or this line ...
-    connect!(@tcp "www.example.com:65535").await.unwrap(); // ... and comment out this line ...
-                                                           // to "switch modes".
-# }
-```
+  # #[tokio::main]
+  # async fn main() {
+  let _ = interact!(tcp, "www.example.com:65535").await.unwrap();
+  # }
+  ```
+- [`ssh`]
+  ```no_run
+  use libspl::interact;
+
+  # #[tokio::main]
+  # async fn main() {
+  let _ = interact!(ssh, "www.example.com", "/path/to/executable").await.unwrap();
+  # }
+  ```
+- [`leak`]
+  ```no_run
+  use libspl::interact;
+
+  # #[tokio::main]
+  # async fn main() {
+  let _ = interact!(leak, "www.example.com", "/path/to/executable").await.unwrap();
+  # }
+  ```
 */
 #[macro_export]
-macro_rules! connect {
-    (@tcp $url: literal) => {{
-        libspl::tcp($url)
-    }};
-    (@ssh $session: ident, $file: literal) => {{
-        libspl::SSH::new(&$session, $file)
-    }};
-    (@leak $session: ident, $file: literal) => {{
-        libspl::SSH::new_leak(&$session, $file)
-    }};
+macro_rules! interact {
+    ($method: ident, $( $args: literal ),+) => {
+        libspl::interaction::$method::connect($( $args ),+)
+    };
 }

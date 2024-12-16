@@ -1,6 +1,6 @@
 #![cfg(feature = "tcp")]
 
-use crate::Interaction;
+use super::Interaction;
 use std::time::Duration;
 use tokio::net::TcpStream;
 
@@ -9,7 +9,7 @@ impl Interaction for TcpStream {
     const REPEAT: usize = 5;
 }
 
-/// Shorthand to open a TCP connection [using tokio](tokio::net::TcpStream).
-pub async fn tcp(url: &'static str) -> std::io::Result<TcpStream> {
+/// Open a TCP [interaction](Interaction) using [tokio](tokio::net::TcpStream).
+pub async fn connect(url: &'static str) -> std::io::Result<TcpStream> {
     Ok(TcpStream::connect(url).await?)
 }
