@@ -1,5 +1,8 @@
 # CHANGELOG
 
+### [v0.2.2](https://github.com/speelbarrow/libspl.rs/tree/v0.2.2)
+- Add [`Repeat`](https://github.com/speelbarrow/libspl.rs/blob/v0.2.2/src/util.rs#L133) trait
+
 ### [v0.2.1](https://github.com/speelbarrow/libspl.rs/tree/v0.2.1)
 - Move `HexToBytes`
   [implementation](https://github.com/speelbarrow/libspl.rs/blob/v0.2.0/src/util.rs#L28)

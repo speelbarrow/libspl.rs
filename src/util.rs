@@ -1,4 +1,9 @@
-use std::{fmt::LowerHex, num::ParseIntError, string::FromUtf8Error};
+use std::{
+    fmt::LowerHex,
+    num::ParseIntError,
+    ops::{BitOrAssign, ShlAssign},
+    string::FromUtf8Error,
+};
 
 #[derive(Debug)]
 pub enum HexToBytesError {
@@ -123,12 +128,63 @@ where
 {
 }
 
+/// See the [method documentation](Repeat::from_repeated).
+#[trait_variant::make(Send)]
+pub trait Repeat<From>: Sized
+where
+    Self: Copy + core::convert::From<From> + BitOrAssign + ShlAssign<usize>,
+    From: Send + Sync,
+{
+    /**
+    Creates a new integer value by repeating a smaller integer value to fill the expanded bits.
+
+    For example:
+    ```
+    use libspl::util::Repeat;
+
+    # #[tokio::main]
+    # async fn main() {
+    let byte = 0x7fu8;
+    let (word, dword, qword) = tokio::join!(
+        u16::from_repeated(byte),
+        i32::from_repeated(byte as i8),
+        u64::from_repeated(byte),
+    );
+    assert_eq!(word, 0x7f7f);
+    assert_eq!(dword, 0x7f7f7f7f);
+    assert_eq!(qword, 0x7f7f7f7f7f7f7f7f);
+    # }
+    ```
+    */
+    async fn from_repeated(from: From) -> Self {
+        async {
+            dbg!(size_of::<Self>());
+            dbg!(size_of::<From>());
+            let mut v = from.into();
+            let mut r = v;
+
+            for _ in 1..(size_of::<Self>() / size_of::<From>()) {
+                v <<= 8 * size_of::<From>();
+                r |= v;
+            }
+
+            r
+        }
+    }
+}
+impl<F, T> Repeat<F> for T
+where
+    T: Send + Copy + From<F> + BitOrAssign + ShlAssign<usize>,
+    F: Send + Sync,
+{
+}
+
 #[cfg(test)]
 mod tests {
-    use rand::{thread_rng, Rng};
-    use tokio::test;
+    use tokio::{join, test};
 
-    use super::{HexToBytes, Pad, Side};
+    use super::{HexToBytes, Pad, Repeat, Side};
+    use rand::{thread_rng, Rng};
 
     #[test]
     async fn left_padded() {
@@ -183,5 +239,21 @@ mod tests {
         );
 
         assert_eq!(string.pad_both_with::<16, 8>(b'1').await, *b"11111111");
+    }
+
+    #[test]
+    async fn repeat_random() {
+        let rand = thread_rng().gen::<u8>();
+        let (expected, actual) = join!(
+            async {
+                let mut r = rand as u64;
+                for exponent in (2..=14).step_by(2) {
+                    r += rand as u64 * 0x10u64.pow(exponent);
+                }
+                r
+            },
+            u64::from_repeated(rand)
+        );
+        assert_eq!(expected, actual);
     }
 }
