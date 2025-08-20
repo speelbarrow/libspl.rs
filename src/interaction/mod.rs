@@ -10,6 +10,7 @@ use tokio::{
 
 pub mod ssh;
 pub mod tcp;
+#[cfg(feature = "ssh")]
 /// For compatibility with [`interact`].
 pub mod leak {
     pub use super::ssh::connect_leak as connect;

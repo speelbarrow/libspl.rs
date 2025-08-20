@@ -197,17 +197,17 @@ mod tests {
     use tokio::test;
 
     use super::{HexToBytes, Pad, Repeat, Side};
-    use rand::{thread_rng, Rng};
+    use rand::{rng, Rng};
     use tokio::join;
 
     #[test]
     async fn left_padded() {
-        let mut rng = thread_rng();
+        let mut rng = rng();
         let (a, b, c, d) = (
-            rng.gen::<u8>(),
-            rng.gen::<u8>(),
-            rng.gen::<u8>(),
-            rng.gen::<u8>(),
+            rng.random::<u8>(),
+            rng.random::<u8>(),
+            rng.random::<u8>(),
+            rng.random::<u8>(),
         );
         let string = [a, b, c, d];
 
@@ -239,12 +239,12 @@ mod tests {
 
     #[test]
     async fn pad_both() {
-        let mut rng = thread_rng();
+        let mut rng = rng();
         let (a, b, c, d) = (
-            rng.gen::<u8>(),
-            rng.gen::<u8>(),
-            rng.gen::<u8>(),
-            rng.gen::<u8>(),
+            rng.random::<u8>(),
+            rng.random::<u8>(),
+            rng.random::<u8>(),
+            rng.random::<u8>(),
         );
         let string = [a, b, c, d];
         assert_eq!(
@@ -257,7 +257,7 @@ mod tests {
 
     #[test]
     async fn repeat_random() {
-        let rand = thread_rng().gen::<u8>();
+        let rand = rng().random::<u8>();
         let (expected, actual) = join!(
             async {
                 let mut r = rand as u64;

@@ -6,8 +6,7 @@ authors = ["Noah Friedman <speelbarrow@speely.net>"]
 license = "AGPL-3.0-only"
 
 [features]
-default = ["full"]
-full = ["ssh", "tcp"]
+default = ["ssh", "tcp"]
 ssh = ["dep:openssh"]
 tcp = ["tokio/net", "tokio/macros"]
 
