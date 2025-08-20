@@ -1,5 +1,11 @@
 # CHANGELOG
 
+### [v0.3.2](https://github.com/speelbarrow/libspl.rs/tree/v0.3.2)
+- Use
+[SSHAsyncSendTryBuilder](https://github.com/speelbarrow/libspl.rs/blob/v0.3.2/src/interaction/ssh.rs#L60) 
+instead of
+[SSHAsyncTryBuilder](https://github.com/speelbarrow/libspl.rs/blob/v0.3.1/src/interaction/ssh.rs#L60)
+
 ### [v0.3.1](https://github.com/speelbarrow/libspl.rs/tree/v0.3.1)
 - [Disable Linux
 buffering](https://github.com/speelbarrow/libspl.rs/blob/v0.3.1/src/interaction/ssh.rs#L65) to avoid

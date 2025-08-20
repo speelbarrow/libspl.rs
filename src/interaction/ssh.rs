@@ -57,7 +57,7 @@ Creates a new SSH [session](Session) with the host at `url`. Then, launches `fil
 host and returns an [`Interaction`] connected to that remote process.
 */
 pub async fn connect(url: &str, file: &'static str) -> Result<SSH, SSHError> {
-    Ok(SSHAsyncTryBuilder {
+    Ok(SSHAsyncSendTryBuilder {
         session: Session::connect_mux(url, KnownHosts::Strict).await?,
         process_builder: |session: &Session| {
             Box::pin(async move {
