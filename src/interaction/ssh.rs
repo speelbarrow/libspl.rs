@@ -44,7 +44,10 @@ impl SSH {
             println!("PID is {}. Waiting . . .", v);
             println!("[Press ENTER to continue]");
 
-            BufReader::new(stdin()).read_line(&mut String::new()).await.unwrap();
+            BufReader::new(stdin())
+                .read_line(&mut String::new())
+                .await
+                .unwrap();
         }
     }
 }
@@ -58,10 +61,21 @@ pub async fn connect(url: &str, file: &'static str) -> Result<SSH, SSHError> {
         session: Session::connect_mux(url, KnownHosts::Strict).await?,
         process_builder: |session: &Session| {
             Box::pin(async move {
-                session.shell(file).stdout(Stdio::piped()).stdin(Stdio::piped()).spawn().await
+                session
+                    .shell("stdbuf -o0 ".to_owned() + file)
+                    .stdout(Stdio::piped())
+                    .stdin(Stdio::piped())
+                    .spawn()
+                    .await
             })
         },
-        name: PathBuf::from_str(file).unwrap().file_name().unwrap().to_str().unwrap().to_owned(),
+        name: PathBuf::from_str(file)
+            .unwrap()
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned(),
     }
     .try_build()
     .await?)
