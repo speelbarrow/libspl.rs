@@ -1,5 +1,11 @@
 # CHANGELOG
 
+### [v0.3.1](https://github.com/speelbarrow/libspl.rs/tree/v0.3.1)
+- [Disable Linux
+buffering](https://github.com/speelbarrow/libspl.rs/blob/v0.3.1/src/interaction/ssh.rs#L65) to avoid
+an issue where output would not appear until the program finished running
+- [Update upstream dependencies](https://github.com/speelbarrow/libspl.rs/blob/v0.3.1/Cargo.toml)
+
 ### [v0.3.0](https://github.com/speelbarrow/libspl.rs/tree/v0.3.0)
 - Move [`util`](https://github.com/speelbarrow/libspl.rs/blob/v0.2.2/src/util.rs) module contents
   into [`lib.rs`](https://github.com/speelbarrow/libspl.rs/blob/v0.3.0/src/lib.rs)
