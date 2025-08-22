@@ -3,14 +3,17 @@
 ### [v0.4.0](https://github.com/speelbarrow/libspl.rs/tree/v0.4.0)
 - Add [`Stdio`](https://github.com/speelbarrow/libspl.rs/blob/v0.4.0/src/interaction/stdio.rs)
 interaction
-- Replace 
+- Rename
 [`connect`](https://github.com/speelbarrow/libspl.rs/blob/v0.3.2/src/interaction/mod.rs#L169) 
-functions with [`Interaction::new`](TODO) method
+functions to 
+[`interact`](https://github.com/speelbarrow/libspl.rs/blob/v0.4.0/src/interaction/mod.rs#L213)
 - Add [`Interaction::close`](TODO)
-- Add [`interaction::PID`](TODO) supertrait for writing process PID to console before beginning the
-  interaction
+- Add 
+[`interaction::PID`](https://github.com/speelbarrow/libspl.rs/blob/v0.4.0/src/interaction/mod.rs#L139)
+supertrait for writing process PID to console before beginning the interaction, subsumes
+[`ssh::connect_leak`](https://github.com/speelbarrow/libspl.rs/blob/v0.3.2/src/interaction/ssh.rs#L89)
 - Improve [Linux buffering
-workaround](https://github.com/speelbarrow/libspl.rs/blob/v0.4.0/src/interaction/ssh.rs#L72) 
+workaround](https://github.com/speelbarrow/libspl.rs/blob/v0.4.0/src/interaction/ssh.rs#L81) 
 introduced in
 [v0.3.1](https://github.com/speelbarrow/libspl.rs/blob/v0.3.1/src/interaction/ssh.rs#L65)
 

@@ -11,7 +11,7 @@ See module-level documentation for more details.
 
 pub mod interaction;
 #[cfg(feature = "interaction")]
-pub use interaction::Interaction;
+pub use interaction::{Interaction, PID};
 
 use std::{
     fmt::LowerHex,

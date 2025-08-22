@@ -1,6 +1,6 @@
 #![cfg(feature = "stdio")]
 
-use super::Interaction;
+use super::{Interaction, PID};
 use std::{
     error::Error,
     ffi::OsStr,
@@ -59,7 +59,6 @@ impl AsyncWrite for Stdio {
         Pin::new((&mut **self).stdin.as_mut().unwrap()).poll_shutdown(cx)
     }
 }
-
 impl Interaction for Stdio {
     const TIMEOUT: Duration = Duration::ZERO;
 }
@@ -82,4 +81,14 @@ where
         command.args(arguments);
     }
     Ok(Stdio(command.spawn()?))
+}
+
+impl PID for Stdio {
+    async fn get_pid(&self) -> Result<u32, Box<dyn Error + Send + Sync>> {
+        if let Some(pid) = self.0.id() {
+            Ok(pid)
+        } else {
+            Err(Box::new(io::Error::from(io::ErrorKind::NotFound)))
+        }
+    }
 }

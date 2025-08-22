@@ -1,6 +1,6 @@
 #![cfg(feature = "ssh")]
 
-use super::Interaction;
+use super::{Interaction, PID};
 use openssh::{Child, Stdio};
 pub use openssh::{KnownHosts, Session};
 use std::{
@@ -13,7 +13,7 @@ use std::{
     task::{Context, Poll},
     time::Duration,
 };
-use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWrite, BufReader, ReadBuf, stdin};
+use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
 #[ouroboros::self_referencing]
 pub struct SSH {
@@ -25,34 +25,44 @@ pub struct SSH {
 
     name: String,
 }
-
-impl SSH {
-    /// See [`interact_leak`].
-    async fn leak_pid(&self) {
-        let grepout = String::from_utf8(
-            self.borrow_session()
-                .command("pgrep")
-                .arg(self.borrow_name())
-                .output()
-                .await
-                .unwrap()
-                .stdout,
-        )
-        .unwrap();
-        if let Some(v) = {
-            let mut ids = grepout.split(|b| b == '\n').collect::<Vec<_>>();
-            ids.pop();
-            ids.pop()
-        } {
-            println!("PID is {}. Waiting . . .", v);
-            println!("[Press ENTER to continue]");
-
-            BufReader::new(stdin())
-                .read_line(&mut String::new())
-                .await
-                .unwrap();
-        }
+impl AsyncRead for SSH {
+    fn poll_read(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<io::Result<()>> {
+        self.with_process_mut(|process| {
+            Pin::new(process.stdout().as_mut().unwrap()).poll_read(cx, buf)
+        })
     }
+}
+impl AsyncWrite for SSH {
+    fn poll_write(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<Result<usize, io::Error>> {
+        self.with_process_mut(|process| {
+            Pin::new(process.stdin().as_mut().unwrap()).poll_write(cx, buf)
+        })
+    }
+
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
+        self.with_process_mut(|process| Pin::new(process.stdin().as_mut().unwrap()).poll_flush(cx))
+    }
+
+    fn poll_shutdown(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<(), io::Error>> {
+        self.with_process_mut(|process| {
+            Pin::new(process.stdin().as_mut().unwrap()).poll_shutdown(cx)
+        })
+    }
+}
+impl Interaction for SSH {
+    const TIMEOUT: Duration = Duration::from_millis(50);
+    const REPEAT: usize = 3;
 }
 
 /**
@@ -98,58 +108,26 @@ pub async fn interact(url: &str, file: &'static str) -> Result<SSH, Box<dyn Erro
     .await?)
 }
 
-/**
-Like [`interact`], but pauses the process as soon as it launches. Then, uses
-`pgrep` on the remote host to find the process's PID and reports it back to you, and then waits
-for the user to press ENTER.
-*/
-pub async fn interact_leak(
-    url: &str,
-    file: &'static str,
-) -> Result<SSH, Box<dyn Error + Send + Sync>> {
-    let r = interact(url, file).await?;
-    r.leak_pid().await;
-    Ok(r)
-}
-
-impl AsyncRead for SSH {
-    fn poll_read(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut ReadBuf<'_>,
-    ) -> Poll<io::Result<()>> {
-        self.with_process_mut(|process| {
-            Pin::new(process.stdout().as_mut().unwrap()).poll_read(cx, buf)
-        })
-    }
-}
-
-impl Interaction for SSH {
-    const TIMEOUT: Duration = Duration::from_millis(50);
-    const REPEAT: usize = 3;
-}
-
-impl AsyncWrite for SSH {
-    fn poll_write(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &[u8],
-    ) -> Poll<Result<usize, io::Error>> {
-        self.with_process_mut(|process| {
-            Pin::new(process.stdin().as_mut().unwrap()).poll_write(cx, buf)
-        })
-    }
-
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
-        self.with_process_mut(|process| Pin::new(process.stdin().as_mut().unwrap()).poll_flush(cx))
-    }
-
-    fn poll_shutdown(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Result<(), io::Error>> {
-        self.with_process_mut(|process| {
-            Pin::new(process.stdin().as_mut().unwrap()).poll_shutdown(cx)
-        })
+impl PID for SSH {
+    async fn get_pid(&self) -> Result<u32, Box<dyn Error + Send + Sync>> {
+        let grepout = String::from_utf8(
+            self.borrow_session()
+                .command("pgrep")
+                .arg(self.borrow_name())
+                .output()
+                .await
+                .unwrap()
+                .stdout,
+        )
+        .unwrap();
+        if let Some(pid) = {
+            let mut ids = grepout.split(|b| b == '\n').collect::<Vec<_>>();
+            ids.pop();
+            ids.pop()
+        } {
+            Ok(pid.parse()?)
+        } else {
+            Err(Box::new(io::Error::from(io::ErrorKind::NotFound)))
+        }
     }
 }

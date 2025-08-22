@@ -2,20 +2,18 @@
 
 use std::{error::Error, future::Future, string::FromUtf8Error, time::Duration};
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt, Error as IOError, copy, stdout},
+    io::{
+        AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, Error as IOError, copy, stdin,
+        stdout,
+    },
     join,
-    sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
+    sync::mpsc::{UnboundedReceiver, unbounded_channel},
     time::timeout,
 };
 
 pub mod ssh;
 pub mod stdio;
 pub mod tcp;
-#[cfg(feature = "ssh")]
-/// For compatibility with [`interact`].
-pub mod leak {
-    pub use super::ssh::interact_leak as interact;
-}
 
 /// A read-write stream that reacts to input.
 #[trait_variant::make(Send)]
@@ -79,7 +77,13 @@ pub trait Interaction: AsyncReadExt + AsyncWriteExt + Unpin + Sized {
         let future = async move {
             let mut stdout = stdout();
             for i in input {
-                write(self.read_chunk().await?, Some(&sender)).await?;
+                let chunk = self.read_chunk().await?;
+                if !sender.is_closed() {
+                    for part in chunk.split("\n") {
+                        sender.send(part.to_owned())?;
+                    }
+                }
+                stdout.write_all(chunk.as_bytes()).await?;
                 let (r1, r2) = join!(self.write_all(i), async {
                     stdout.write_all(i).await?;
                     stdout.write_u8(b'\n').await?;
@@ -118,18 +122,51 @@ pub trait Interaction: AsyncReadExt + AsyncWriteExt + Unpin + Sized {
     }
 }
 
-async fn write(
-    chunk: String,
-    sender: Option<&UnboundedSender<String>>,
-) -> Result<(), Box<dyn Error + Send + Sync>> {
-    if let Some(sender) = sender {
-        if !sender.is_closed() {
-            for part in chunk.split("\n") {
-                sender.send(part.to_owned())?;
+/**
+An [Interaction] that can retrieve the PID of the underlying process.
+```
+use libspl::{interact, PID};
+
+# use std::error::Error;
+# #[tokio::main]
+# async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+interact!(stdio, "ls").await?.leak_pid().await;
+# Ok(())
+# }
+```
+*/
+#[trait_variant::make(Send)]
+pub trait PID: Interaction + Send + Sync {
+    async fn get_pid(&self) -> Result<u32, Box<dyn Error + Send + Sync>>;
+
+    /**
+    Pauses the [Interaction], writes the [PID](PID::get_pid) to the console, and waits for user
+    confirmation.
+
+    See the [trait documentation](PID).
+    */
+    async fn leak_pid(&self) -> &Self {
+        async move {
+            match self.get_pid().await {
+                Ok(pid) => println!("PID is {}", pid),
+                Err(error) => println!("Failed to retrieve PID with error: {}", error),
             }
+
+            /*
+            Using `print` here causes the line not to be shown until after ENTER is pressed, even if
+            `stdout.flush` is called afterwards.
+            */
+            let mut stdout = stdout();
+            stdout.write(b"[Press ENTER to continue]").await.unwrap();
+            stdout.flush().await.unwrap();
+
+            BufReader::new(stdin())
+                .read_line(&mut String::new())
+                .await
+                .unwrap();
+            self
         }
     }
-    Ok(stdout().write_all(chunk.as_bytes()).await?)
 }
 
 /**
