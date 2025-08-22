@@ -11,20 +11,20 @@ on:
   workflow_call:
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ssh: ["", " -F ssh"]
+        tcp: ["", " -F tcp"]
+    name: Build with `--no-default-features${{ matrix.ssh }}${{ matrix.tcp }}`
+    steps:
+      - uses: speelbarrow/checkout-and-setup@v1.3
+      - run: cargo build --no-default-features${{ matrix.ssh }}${{ matrix.tcp }}
+        
   test:
     name: Run tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            ~/.rustup/
-            target/
-          key: rust-${{ hashFiles('Cargo.toml') }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: speelbarrow/checkout-and-setup@v1.3
       - run: cargo test --all-features

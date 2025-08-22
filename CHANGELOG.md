@@ -1,5 +1,17 @@
 # CHANGELOG
 
+### [v0.4.0](https://github.com/speelbarrow/libspl.rs/tree/v0.4.0)
+- Add [`Stdio`](https://github.com/speelbarrow/libspl.rs/blob/v0.4.0/src/interaction/stdio.rs)
+interaction
+- Replace 
+[`interact`](https://github.com/speelbarrow/libspl.rs/blob/v0.3.2/src/interaction/mod.rs#L169) 
+functions with [`Interaction::new`](TODO) method
+- Add [`Interaction::close`](TODO)
+- Add [`interaction::PID`](TODO) supertrait for writing process PID to console before beginning the
+  interaction
+- Improve [Linux buffering workaround](TODO) introduced in
+[v0.3.1](https://github.com/speelbarrow/libspl.rs/blob/v0.3.1/src/interaction/ssh.rs#L65)
+
 ### [v0.3.2](https://github.com/speelbarrow/libspl.rs/tree/v0.3.2)
 - Use
 [SSHAsyncSendTryBuilder](https://github.com/speelbarrow/libspl.rs/blob/v0.3.2/src/interaction/ssh.rs#L60) 
