@@ -64,7 +64,8 @@ impl Interaction for Stdio {
     const TIMEOUT: Duration = Duration::ZERO;
 }
 
-pub async fn connect<I>(
+/// Launch a [child process](tokio::process::Child) for interaction.
+pub async fn interact<I>(
     path: impl AsRef<Path>,
     arguments: Option<I>,
 ) -> Result<Stdio, Box<dyn Error + Send + Sync>>

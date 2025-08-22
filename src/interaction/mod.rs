@@ -14,10 +14,10 @@ pub mod tcp;
 #[cfg(feature = "ssh")]
 /// For compatibility with [`interact`].
 pub mod leak {
-    pub use super::ssh::connect_leak as connect;
+    pub use super::ssh::interact_leak as interact;
 }
 
-/// A remote stream that takes input.
+/// A read-write stream that reacts to input.
 #[trait_variant::make(Send)]
 pub trait Interaction: AsyncReadExt + AsyncWriteExt + Unpin + Sized {
     const TIMEOUT: Duration;
@@ -136,15 +136,6 @@ async fn write(
 Shorthand for creating new [Interaction]s.
 
 Supported recipes:
-- [`tcp`]
-  ```no_run
-  use libspl::interact;
-
-  # #[tokio::main]
-  # async fn main() {
-  let _ = interact!(tcp, "www.example.com:65535").await.unwrap();
-  # }
-  ```
 - [`ssh`]
   ```no_run
   use libspl::interact;
@@ -154,19 +145,45 @@ Supported recipes:
   let _ = interact!(ssh, "www.example.com", "/path/to/executable").await.unwrap();
   # }
   ```
-- [`leak`]
+- [`stdio`]
   ```no_run
   use libspl::interact;
 
   # #[tokio::main]
   # async fn main() {
-  let _ = interact!(leak, "www.example.com", "/path/to/executable").await.unwrap();
+  let _ = interact!(stdio, "/path/to/executable").await.unwrap();
+  # }
+  ```
+  ```no_run
+  use libspl::interact;
+
+  # #[tokio::main]
+  # async fn main() {
+  let _ = interact!(stdio, "/path/to/executable", "--arg1", "--arg2").await.unwrap();
+  # }
+  ```
+- [`tcp`]
+  ```no_run
+  use libspl::interact;
+
+  # #[tokio::main]
+  # async fn main() {
+  let _ = interact!(tcp, "www.example.com:65535").await.unwrap();
   # }
   ```
 */
 #[macro_export]
 macro_rules! interact {
-    ($method: ident, $( $args: literal ),+) => {
-        libspl::interaction::$method::connect($( $args ),+)
+    (stdio, $path: expr) => {
+        ::libspl::interaction::stdio::interact::<[&str; 0]>($path, None)
+    };
+    (stdio, $path: expr$(, $argument: expr)+) => {
+        interact!(@internal stdio, $path, Some([$( $argument ),+]))
+    };
+    ($method: ident$(, $argument: expr )*) => {
+        interact!(@internal $method$(, $argument)*)
+    };
+    (@internal $method: ident$(, $argument: expr )*) => {
+        ::libspl::interaction::$method::interact($( $argument ),*)
     };
 }

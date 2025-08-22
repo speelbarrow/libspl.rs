@@ -10,6 +10,6 @@ impl Interaction for TcpStream {
 }
 
 /// Open a TCP [interaction](Interaction) using [tokio](tokio::net::TcpStream).
-pub async fn connect(url: &'static str) -> std::io::Result<TcpStream> {
+pub async fn interact(url: &'static str) -> std::io::Result<TcpStream> {
     Ok(TcpStream::connect(url).await?)
 }

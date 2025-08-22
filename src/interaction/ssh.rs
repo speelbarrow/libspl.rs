@@ -27,7 +27,7 @@ pub struct SSH {
 }
 
 impl SSH {
-    /// See [`connect_leak`](connect_leak).
+    /// See [`interact_leak`].
     async fn leak_pid(&self) {
         let grepout = String::from_utf8(
             self.borrow_session()
@@ -63,7 +63,7 @@ Before launching `file`, this function will attempt to run `uname` on the remote
 it is running Linux. If so, `file` with be run with the command prefix `"stdbuf -o0 "` to avoid
 Linux buffering/withholding remote program output.
 */
-pub async fn connect(url: &str, file: &'static str) -> Result<SSH, Box<dyn Error + Send + Sync>> {
+pub async fn interact(url: &str, file: &'static str) -> Result<SSH, Box<dyn Error + Send + Sync>> {
     Ok(SSHAsyncSendTryBuilder {
         session: Session::connect_mux(url, KnownHosts::Strict).await?,
         process_builder: |session: &Session| {
@@ -99,15 +99,15 @@ pub async fn connect(url: &str, file: &'static str) -> Result<SSH, Box<dyn Error
 }
 
 /**
-Like [`connect`](connect), but pauses the process as soon as it launches. Then, uses
+Like [`interact`], but pauses the process as soon as it launches. Then, uses
 `pgrep` on the remote host to find the process's PID and reports it back to you, and then waits
 for the user to press ENTER.
 */
-pub async fn connect_leak(
+pub async fn interact_leak(
     url: &str,
     file: &'static str,
 ) -> Result<SSH, Box<dyn Error + Send + Sync>> {
-    let r = connect(url, file).await?;
+    let r = interact(url, file).await?;
     r.leak_pid().await;
     Ok(r)
 }
