@@ -1,14 +1,15 @@
-#![cfg(any(feature = "tcp", feature = "ssh"))]
+#![cfg(feature = "interaction")]
 
 use std::{error::Error, future::Future, string::FromUtf8Error, time::Duration};
 use tokio::{
-    io::{copy, stdout, AsyncReadExt, AsyncWriteExt, Error as IOError},
+    io::{AsyncReadExt, AsyncWriteExt, Error as IOError, copy, stdout},
     join,
-    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
     time::timeout,
 };
 
 pub mod ssh;
+pub mod stdio;
 pub mod tcp;
 #[cfg(feature = "ssh")]
 /// For compatibility with [`interact`].

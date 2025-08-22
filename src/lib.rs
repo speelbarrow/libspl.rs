@@ -10,7 +10,7 @@ See module-level documentation for more details.
 */
 
 pub mod interaction;
-#[cfg(any(feature = "ssh", feature = "tcp"))]
+#[cfg(feature = "interaction")]
 pub use interaction::Interaction;
 
 use std::{
@@ -197,7 +197,7 @@ mod tests {
     use tokio::test;
 
     use super::{HexToBytes, Pad, Repeat, Side};
-    use rand::{rng, Rng};
+    use rand::{Rng, rng};
     use tokio::join;
 
     #[test]

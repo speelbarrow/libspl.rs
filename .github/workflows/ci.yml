@@ -16,11 +16,17 @@ jobs:
     strategy:
       matrix:
         ssh: ["", " -F ssh"]
+        stdio: ["", " -F stdio"]
         tcp: ["", " -F tcp"]
-    name: Build with `--no-default-features${{ matrix.ssh }}${{ matrix.tcp }}`
+        include:
+          - interaction: " -F interaction"
+            ssh: ""
+            stdio: ""
+            tcp: ""
+    name: Build with `--no-default-features${{ matrix.interaction }}${{ matrix.ssh }}${{ matrix.stdio }}${{ matrix.tcp }}`
     steps:
       - uses: speelbarrow/checkout-and-setup@v1.3
-      - run: cargo build --no-default-features${{ matrix.ssh }}${{ matrix.tcp }}
+      - run: cargo build --no-default-features${{ matrix.interaction }}${{ matrix.ssh }}${{ matrix.stdio }}${{ matrix.tcp }}
         
   test:
     name: Run tests

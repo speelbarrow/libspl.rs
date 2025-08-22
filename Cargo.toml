@@ -6,9 +6,11 @@ authors = ["Noah Friedman <speelbarrow@speely.net>"]
 license = "AGPL-3.0-or-later"
 
 [features]
-default = ["ssh", "tcp"]
-ssh = ["dep:openssh"]
-tcp = ["tokio/net", "tokio/macros"]
+default = ["ssh", "stdio", "tcp"]
+interaction = ["tokio/macros", "tokio/io-util", "tokio/io-std", "tokio/sync", "tokio/time"]
+ssh = ["interaction", "dep:openssh"]
+stdio = ["interaction", "tokio/process"]
+tcp = ["interaction", "tokio/net", "tokio/macros"]
 
 [dependencies]
 ouroboros = "0.18"
@@ -21,7 +23,7 @@ optional = true
 version = "0.11"
 
 [dependencies.tokio]
-features = ["io-util", "io-std", "time", "sync"]
+optional = true
 version = "1"
 
 [dev-dependencies]
