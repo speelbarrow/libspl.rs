@@ -7,7 +7,8 @@ interaction
 [`connect`](https://github.com/speelbarrow/libspl.rs/blob/v0.3.2/src/interaction/mod.rs#L169) 
 functions to 
 [`interact`](https://github.com/speelbarrow/libspl.rs/blob/v0.4.0/src/interaction/mod.rs#L213)
-- Add [`Interaction::close`](TODO)
+- Add
+[`Interaction::close`](https://github.com/speelbarrow/libspl.rs/blob/v0.4.0/src/interaction/mod.rs#L125)
 - Add 
 [`interaction::PID`](https://github.com/speelbarrow/libspl.rs/blob/v0.4.0/src/interaction/mod.rs#L139)
 supertrait for writing process PID to console before beginning the interaction, subsumes
