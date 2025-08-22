@@ -1,5 +1,11 @@
 # CHANGELOG
 
+### [v0.4.1](https://github.com/speelbarrow/libspl.rs/tree/v0.4.1)
+- Add 
+[call to `kill -9
+<pid>`](https://github.com/speelbarrow/libspl.rs/blob/v0.4.1/src/interaction/ssh.rs#L80) 
+when closing an SSH interaction (if a PID can be found)
+
 ### [v0.4.0](https://github.com/speelbarrow/libspl.rs/tree/v0.4.0)
 - Add [`Stdio`](https://github.com/speelbarrow/libspl.rs/blob/v0.4.0/src/interaction/stdio.rs)
 interaction

@@ -25,6 +25,18 @@ pub struct SSH {
 
     name: String,
 }
+impl SSH {
+    async fn is_linux(session: &Session) -> bool {
+        match session.command("uname").output().await {
+            Ok(Output { ref stdout, .. })
+                if std::str::from_utf8(stdout).is_ok_and(|string| string.contains("Linux")) =>
+            {
+                true
+            }
+            _ => false,
+        }
+    }
+}
 impl AsyncRead for SSH {
     fn poll_read(
         mut self: Pin<&mut Self>,
@@ -65,7 +77,16 @@ impl Interaction for SSH {
     const REPEAT: usize = 3;
 
     async fn close(self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        self.into_heads().session.close().await?;
+        let pid = self.get_pid().await;
+        let session = self.into_heads().session;
+        if let Ok(pid) = pid {
+            session
+                .command("kill")
+                .args(["-9", &pid.to_string()])
+                .output()
+                .await?;
+        }
+        session.close().await?;
         Ok(())
     }
 }
@@ -84,14 +105,8 @@ pub async fn interact(url: &str, file: &'static str) -> Result<SSH, Box<dyn Erro
         process_builder: |session: &Session| {
             Box::pin(async move {
                 let mut prefix = String::new();
-                match session.command("uname").output().await {
-                    Ok(Output { ref stdout, .. })
-                        if std::str::from_utf8(stdout)
-                            .is_ok_and(|string| string.contains("Linux")) =>
-                    {
-                        prefix += "stdbuf -o0 "
-                    }
-                    _ => (),
+                if SSH::is_linux(session).await {
+                    prefix += "stdbuf -o0 "
                 }
                 session
                     .shell(prefix + file)
@@ -102,7 +117,7 @@ pub async fn interact(url: &str, file: &'static str) -> Result<SSH, Box<dyn Erro
             })
         },
         name: {
-            if let Some(name) = PathBuf::from_str(file)?.file_name() {
+            if let Some(name) = PathBuf::from_str(file.split(" ").next().unwrap())?.file_name() {
                 name.to_string_lossy().to_string()
             } else {
                 return Err(Box::new(io::Error::from(io::ErrorKind::InvalidFilename)));
@@ -115,24 +130,25 @@ pub async fn interact(url: &str, file: &'static str) -> Result<SSH, Box<dyn Erro
 
 impl PID for SSH {
     async fn get_pid(&self) -> Result<u32, Box<dyn Error + Send + Sync>> {
-        let grepout = String::from_utf8(
-            self.borrow_session()
-                .command("pgrep")
-                .arg(self.borrow_name())
-                .output()
-                .await
-                .unwrap()
-                .stdout,
-        )
-        .unwrap();
-        if let Some(pid) = {
-            let mut ids = grepout.split(|b| b == '\n').collect::<Vec<_>>();
-            ids.pop();
-            ids.pop()
-        } {
-            Ok(pid.parse()?)
-        } else {
-            Err(Box::new(io::Error::from(io::ErrorKind::NotFound)))
+        if Self::is_linux(self.borrow_session()).await {
+            let grepout = String::from_utf8(
+                self.borrow_session()
+                    .command("pgrep")
+                    .arg(self.borrow_name())
+                    .output()
+                    .await
+                    .unwrap()
+                    .stdout,
+            )
+            .unwrap();
+            if let Some(pid) = {
+                let mut ids = grepout.split(|b| b == '\n').collect::<Vec<_>>();
+                ids.pop();
+                ids.pop()
+            } {
+                return Ok(pid.parse()?);
+            }
         }
+        Err(Box::new(io::Error::from(io::ErrorKind::NotFound)))
     }
 }
