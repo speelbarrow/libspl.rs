@@ -1,16 +1,19 @@
 #![cfg(feature = "ssh")]
 
 use super::Interaction;
-use openssh::{Child, Error as SSHError, Stdio};
+use openssh::{Child, Stdio};
 pub use openssh::{KnownHosts, Session};
 use std::{
-    io::{Error as IOError, Result as IOResult},
+    error::Error,
+    io,
     path::PathBuf,
     pin::Pin,
+    process::Output,
     str::FromStr,
+    task::{Context, Poll},
     time::Duration,
 };
-use tokio::io::{stdin, AsyncBufReadExt, AsyncRead, AsyncWrite, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWrite, BufReader, ReadBuf, stdin};
 
 #[ouroboros::self_referencing]
 pub struct SSH {
@@ -55,27 +58,41 @@ impl SSH {
 /**
 Creates a new SSH [session](Session) with the host at `url`. Then, launches `file` on the remote
 host and returns an [`Interaction`] connected to that remote process.
+
+Before launching `file`, this function will attempt to run `uname` on the remote system to detect if
+it is running Linux. If so, `file` with be run with the command prefix `"stdbuf -o0 "` to avoid
+Linux buffering/withholding remote program output.
 */
-pub async fn connect(url: &str, file: &'static str) -> Result<SSH, SSHError> {
+pub async fn connect(url: &str, file: &'static str) -> Result<SSH, Box<dyn Error + Send + Sync>> {
     Ok(SSHAsyncSendTryBuilder {
         session: Session::connect_mux(url, KnownHosts::Strict).await?,
         process_builder: |session: &Session| {
             Box::pin(async move {
+                let mut prefix = String::new();
+                match session.command("uname").output().await {
+                    Ok(Output { ref stdout, .. })
+                        if std::str::from_utf8(stdout)
+                            .is_ok_and(|string| string.contains("Linux")) =>
+                    {
+                        prefix += "stdbuf -o0 "
+                    }
+                    _ => (),
+                }
                 session
-                    .shell("stdbuf -o0 ".to_owned() + file)
+                    .shell(prefix + file)
                     .stdout(Stdio::piped())
                     .stdin(Stdio::piped())
                     .spawn()
                     .await
             })
         },
-        name: PathBuf::from_str(file)
-            .unwrap()
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_owned(),
+        name: {
+            if let Some(name) = PathBuf::from_str(file)?.file_name() {
+                name.to_string_lossy().to_string()
+            } else {
+                return Err(Box::new(io::Error::from(io::ErrorKind::InvalidFilename)));
+            }
+        },
     }
     .try_build()
     .await?)
@@ -86,46 +103,21 @@ Like [`connect`](connect), but pauses the process as soon as it launches. Then, 
 `pgrep` on the remote host to find the process's PID and reports it back to you, and then waits
 for the user to press ENTER.
 */
-pub async fn connect_leak(url: &str, file: &'static str) -> Result<SSH, SSHError> {
+pub async fn connect_leak(
+    url: &str,
+    file: &'static str,
+) -> Result<SSH, Box<dyn Error + Send + Sync>> {
     let r = connect(url, file).await?;
     r.leak_pid().await;
     Ok(r)
 }
 
-impl AsyncWrite for SSH {
-    fn poll_write(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-        buf: &[u8],
-    ) -> std::task::Poll<Result<usize, IOError>> {
-        self.with_process_mut(|process| {
-            Pin::new(process.stdin().as_mut().unwrap()).poll_write(cx, buf)
-        })
-    }
-
-    fn poll_flush(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Result<(), IOError>> {
-        self.with_process_mut(|process| Pin::new(process.stdin().as_mut().unwrap()).poll_flush(cx))
-    }
-
-    fn poll_shutdown(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Result<(), IOError>> {
-        self.with_process_mut(|process| {
-            Pin::new(process.stdin().as_mut().unwrap()).poll_shutdown(cx)
-        })
-    }
-}
-
 impl AsyncRead for SSH {
     fn poll_read(
         mut self: Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-        buf: &mut tokio::io::ReadBuf<'_>,
-    ) -> std::task::Poll<IOResult<()>> {
+        cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<io::Result<()>> {
         self.with_process_mut(|process| {
             Pin::new(process.stdout().as_mut().unwrap()).poll_read(cx, buf)
         })
@@ -135,4 +127,29 @@ impl AsyncRead for SSH {
 impl Interaction for SSH {
     const TIMEOUT: Duration = Duration::from_millis(50);
     const REPEAT: usize = 3;
+}
+
+impl AsyncWrite for SSH {
+    fn poll_write(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<Result<usize, io::Error>> {
+        self.with_process_mut(|process| {
+            Pin::new(process.stdin().as_mut().unwrap()).poll_write(cx, buf)
+        })
+    }
+
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
+        self.with_process_mut(|process| Pin::new(process.stdin().as_mut().unwrap()).poll_flush(cx))
+    }
+
+    fn poll_shutdown(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<(), io::Error>> {
+        self.with_process_mut(|process| {
+            Pin::new(process.stdin().as_mut().unwrap()).poll_shutdown(cx)
+        })
+    }
 }
