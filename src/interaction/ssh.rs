@@ -63,6 +63,11 @@ impl AsyncWrite for SSH {
 impl Interaction for SSH {
     const TIMEOUT: Duration = Duration::from_millis(50);
     const REPEAT: usize = 3;
+
+    async fn close(self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        self.into_heads().session.close().await?;
+        Ok(())
+    }
 }
 
 /**

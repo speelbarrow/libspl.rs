@@ -120,6 +120,9 @@ pub trait Interaction: AsyncReadExt + AsyncWriteExt + Unpin + Sized {
     {
         self.run_with_channel(input).1
     }
+
+    /// Ends and cleans up the underlying tissue of the [Interaction].
+    async fn close(self) -> Result<(), Box<dyn Error + Send + Sync>>;
 }
 
 /**

@@ -61,6 +61,11 @@ impl AsyncWrite for Stdio {
 }
 impl Interaction for Stdio {
     const TIMEOUT: Duration = Duration::ZERO;
+
+    async fn close(mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        self.kill().await?;
+        Ok(())
+    }
 }
 
 /// Launch a [child process](tokio::process::Child) for interaction.
