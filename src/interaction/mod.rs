@@ -3,8 +3,8 @@
 use std::{error::Error, future::Future, string::FromUtf8Error, time::Duration};
 use tokio::{
     io::{
-        AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, Error as IOError, copy, stdin,
-        stdout,
+        AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, Error as IOError, copy, split,
+        stdin, stdout,
     },
     join,
     sync::mpsc::{UnboundedReceiver, unbounded_channel},
@@ -123,6 +123,23 @@ pub trait Interaction: AsyncReadExt + AsyncWriteExt + Unpin + Sized {
 
     /// Ends and cleans up the underlying tissue of the [Interaction].
     async fn close(self) -> Result<(), Box<dyn Error + Send + Sync>>;
+
+    /**
+    Connects the [`Interaction`]'s read/write streams to [`stdin`]/[`stdout`]. Consumes the
+    [`Interaction`].
+
+    [`stdin`]: tokio::io::stdin
+    [`stdout`]: tokio::io::stdout
+    */
+    async fn inherit(self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        async {
+            let ((mut read, mut write), mut stdin, mut stdout) = (split(self), stdin(), stdout());
+            let (a, b) = join!(copy(&mut read, &mut stdout), copy(&mut stdin, &mut write));
+            a?;
+            b?;
+            Ok(())
+        }
+    }
 }
 
 /**

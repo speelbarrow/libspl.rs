@@ -1,5 +1,9 @@
 # CHANGELOG
 
+### [v0.4.2](https://github.com/speelbarrow/libspl.rs/tree/v0.4.2)
+- Add
+[Interaction::inherit](https://github.com/speelbarrow/libspl.rs/blob/v0.4.2/src/interaction/mod.rs#L134)
+
 ### [v0.4.1](https://github.com/speelbarrow/libspl.rs/tree/v0.4.1)
 - Add 
 [call to `kill -9
