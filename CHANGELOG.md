@@ -1,5 +1,10 @@
 # CHANGELOG
 
+### [v0.4.3](https://github.com/speelbarrow/libspl.rs/tree/v0.4.3)
+- Improve 
+[detection](https://github.com/speelbarrow/libspl.rs/blob/v0.4.3/src/interaction/ssh.rs#L121) of SSH
+process name
+
 ### [v0.4.2](https://github.com/speelbarrow/libspl.rs/tree/v0.4.2)
 - Add
 [Interaction::inherit](https://github.com/speelbarrow/libspl.rs/blob/v0.4.2/src/interaction/mod.rs#L134)

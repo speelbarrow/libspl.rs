@@ -117,7 +117,19 @@ pub async fn interact(url: &str, file: &'static str) -> Result<SSH, Box<dyn Erro
             })
         },
         name: {
-            if let Some(name) = PathBuf::from_str(file.split(" ").next().unwrap())?.file_name() {
+            if let Some(name) = PathBuf::from_str(
+                file.trim_matches('\'')
+                    .split(";")
+                    .last()
+                    .unwrap()
+                    .trim()
+                    .trim_start_matches(['.', '/'])
+                    .split(" ")
+                    .next()
+                    .unwrap(),
+            )?
+            .file_name()
+            {
                 name.to_string_lossy().to_string()
             } else {
                 return Err(Box::new(io::Error::from(io::ErrorKind::InvalidFilename)));
