@@ -104,12 +104,13 @@ pub async fn interact(url: &str, file: &'static str) -> Result<SSH, Box<dyn Erro
         session: Session::connect_mux(url, KnownHosts::Strict).await?,
         process_builder: |session: &Session| {
             Box::pin(async move {
-                let mut prefix = String::new();
+                let mut shell = String::from(file);
                 if SSH::is_linux(session).await {
-                    prefix += "stdbuf -o0 "
+                    shell.insert_str(0, "stdbuf -o0 sh -c '\n");
+                    shell += "\n'";
                 }
                 session
-                    .shell(prefix + file)
+                    .shell(shell)
                     .stdout(Stdio::piped())
                     .stdin(Stdio::piped())
                     .spawn()
@@ -119,7 +120,10 @@ pub async fn interact(url: &str, file: &'static str) -> Result<SSH, Box<dyn Erro
         name: {
             if let Some(name) = PathBuf::from_str(
                 file.trim_matches('\'')
-                    .split(";")
+                    .trim()
+                    .replace("\n", ";")
+                    .replace("\\;", ";")
+                    .split(';')
                     .last()
                     .unwrap()
                     .trim()

@@ -1,19 +1,13 @@
 [package]
 name = "libspl"
-version = "0.4.3"
+version = "0.4.4"
 edition = "2024"
 authors = ["Noah Friedman <speelbarrow@speely.net>"]
 license = "AGPL-3.0-or-later"
 
 [features]
 default = ["ssh", "stdio", "tcp"]
-interaction = [
-  "tokio/macros",
-  "tokio/io-util",
-  "tokio/io-std",
-  "tokio/sync",
-  "tokio/time",
-]
+interaction = ["tokio/macros", "tokio/io-util", "tokio/io-std", "tokio/sync", "tokio/time"]
 ssh = ["interaction", "dep:openssh"]
 stdio = ["interaction", "tokio/process"]
 tcp = ["interaction", "tokio/net", "tokio/macros"]
