@@ -99,12 +99,15 @@ Before launching `file`, this function will attempt to run `uname` on the remote
 it is running Linux. If so, `file` with be run with the command prefix `"stdbuf -o0 "` to avoid
 Linux buffering/withholding remote program output.
 */
-pub async fn interact(url: &str, file: &'static str) -> Result<SSH, Box<dyn Error + Send + Sync>> {
+pub async fn interact(
+    url: impl AsRef<str>,
+    file: impl AsRef<str>,
+) -> Result<SSH, Box<dyn Error + Send + Sync>> {
     Ok(SSHAsyncSendTryBuilder {
         session: Session::connect_mux(url, KnownHosts::Strict).await?,
         process_builder: |session: &Session| {
+            let mut shell = String::from(file.as_ref());
             Box::pin(async move {
-                let mut shell = String::from(file);
                 if SSH::is_linux(session).await {
                     shell.insert_str(0, "stdbuf -o0 sh -c '\n");
                     shell += "\n'";
@@ -119,7 +122,8 @@ pub async fn interact(url: &str, file: &'static str) -> Result<SSH, Box<dyn Erro
         },
         name: {
             if let Some(name) = PathBuf::from_str(
-                file.trim_matches('\'')
+                file.as_ref()
+                    .trim_matches('\'')
                     .trim()
                     .replace("\n", ";")
                     .replace("\\;", ";")

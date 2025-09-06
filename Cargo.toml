@@ -1,6 +1,6 @@
 [package]
 name = "libspl"
-version = "0.4.4"
+version = "0.4.5"
 edition = "2024"
 authors = ["Noah Friedman <speelbarrow@speely.net>"]
 license = "AGPL-3.0-or-later"

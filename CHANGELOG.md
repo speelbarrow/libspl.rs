@@ -1,7 +1,12 @@
 # CHANGELOG
 
+### [v0.4.5](https://github.com/speelbarrow/libspl.rs/tree/v0.4.5)
+- Adjust argument types of
+[`interaction::ssh::interact`](https://github.com/speelbarrow/libspl.rs/blob/v0.4.5/src/interaction/ssh.rs#L103)
+to accept runtime strings
+
 ### [v0.4.4](https://github.com/speelbarrow/libspl.rs/tree/v0.4.4)
-- [Improvements](https://github.com/speelbarrow/libspl.rs/blob/v0.4.4/src/interaction.ssh) to SSH 
+- [Improvements](https://github.com/speelbarrow/libspl.rs/blob/v0.4.4/src/interaction/ssh.rs) to SSH 
 behaviour on remote Linux machines
 
 ### [v0.4.3](https://github.com/speelbarrow/libspl.rs/tree/v0.4.3)
