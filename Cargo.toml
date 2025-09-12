@@ -7,28 +7,34 @@ license = "AGPL-3.0-or-later"
 
 [features]
 default = ["ssh", "stdio", "tcp"]
-interaction = ["tokio/macros", "tokio/io-util", "tokio/io-std", "tokio/sync", "tokio/time"]
+interaction = [
+    "tokio/macros",
+    "tokio/io-util",
+    "tokio/io-std",
+    "tokio/sync",
+    "tokio/time",
+]
 ssh = ["interaction", "dep:openssh"]
 stdio = ["interaction", "tokio/process"]
 tcp = ["interaction", "tokio/net", "tokio/macros"]
 
 [dependencies]
-ouroboros = "0.18"
-trait-variant = "0.1"
+ouroboros = "0.18.5"
+trait-variant = "0.1.2"
 
 [dependencies.openssh]
 default-features = false
 features = ["native-mux"]
 optional = true
-version = "0.11"
+version = "0.11.5"
 
 [dependencies.tokio]
 optional = true
-version = "1"
+version = "1.47"
 
 [dev-dependencies]
-rand = "0.9"
+rand = "0.9.2"
 
 [dev-dependencies.tokio]
 features = ["rt-multi-thread"]
-version = "1"
+version = "1.47"
