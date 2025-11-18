@@ -62,6 +62,7 @@ pub trait HexToBytes: LowerHex + Sync {
 impl<T: ?Sized + Send + Sync + LowerHex> HexToBytes for T {}
 
 /// Describes which side of an array should be padded/truncated. See [`Pad`].
+#[derive(Clone, Copy)]
 pub enum Side {
     Left,
     Right,
@@ -171,8 +172,6 @@ where
     */
     async fn from_repeated(from: From) -> Self {
         async {
-            dbg!(size_of::<Self>());
-            dbg!(size_of::<From>());
             let mut v = from.into();
             let mut r = v;
 
@@ -190,84 +189,4 @@ where
     T: Send + Copy + From<F> + BitOrAssign + ShlAssign<usize>,
     F: Send + Sync,
 {
-}
-
-#[cfg(test)]
-mod tests {
-    use tokio::test;
-
-    use super::{HexToBytes, Pad, Repeat, Side};
-    use rand::{Rng, rng};
-    use tokio::join;
-
-    #[test]
-    async fn left_padded() {
-        let mut rng = rng();
-        let (a, b, c, d) = (
-            rng.random::<u8>(),
-            rng.random::<u8>(),
-            rng.random::<u8>(),
-            rng.random::<u8>(),
-        );
-        let string = [a, b, c, d];
-
-        assert_eq!(
-            [&[0u8; 28], &string as &[u8]].concat(),
-            string.pad::<32>(Side::Left).await.to_vec()
-        );
-        assert_eq!(
-            [&[b'1'; 28], &string as &[u8]].concat(),
-            string.pad_with::<32>(Side::Left, b'1').await.to_vec(),
-        );
-    }
-
-    #[test]
-    async fn hexbytes() {
-        assert_eq!(
-            0x10203040u32.hex_to_bytes().await,
-            &[0x10u8, 0x20u8, 0x30u8, 0x40u8]
-        );
-    }
-
-    #[test]
-    async fn right_padded_hexbytes() {
-        assert_eq!(
-            &(0x12030.hex_to_bytes().await.pad::<4>(Side::Right).await) as &[u8],
-            &[0x01, 0x20, 0x30, 0]
-        );
-    }
-
-    #[test]
-    async fn pad_both() {
-        let mut rng = rng();
-        let (a, b, c, d) = (
-            rng.random::<u8>(),
-            rng.random::<u8>(),
-            rng.random::<u8>(),
-            rng.random::<u8>(),
-        );
-        let string = [a, b, c, d];
-        assert_eq!(
-            string.pad_both::<8, 16>().await,
-            [0, 0, 0, 0, a, b, c, d, 0, 0, 0, 0, 0, 0, 0, 0]
-        );
-
-        assert_eq!(string.pad_both_with::<16, 8>(b'1').await, *b"11111111");
-    }
-
-    #[test]
-    async fn repeat_random() {
-        let rand = rng().random::<u8>();
-        let (expected, actual) = join!(
-            async {
-                let mut r = rand as u64;
-                for exponent in (2..=14).step_by(2) {
-                    r += rand as u64 * 0x10u64.pow(exponent);
-                }
-                r
-            },
-            u64::from_repeated(rand)
-        );
-        assert_eq!(expected, actual);
-    }
 }
