@@ -3,8 +3,8 @@
 use std::{error::Error, future::Future, string::FromUtf8Error, time::Duration};
 use tokio::{
     io::{
-        AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, Error as IOError, copy, split,
-        stdin, stdout,
+        AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader,
+        Error as IOError, copy, split, stdin, stdout,
     },
     join,
     sync::mpsc::{UnboundedReceiver, unbounded_channel},
@@ -17,9 +17,12 @@ pub mod tcp;
 
 /// A read-write stream that reacts to input.
 #[trait_variant::make(Send)]
-pub trait Interaction: AsyncReadExt + AsyncWriteExt + Unpin + Sized {
+pub trait Interaction: AsyncRead + AsyncWrite + Unpin + Sized {
     const TIMEOUT: Duration;
     const REPEAT: usize = 1;
+
+    /// Ends and cleans up the underlying tissue of the [Interaction].
+    async fn close(self) -> Result<(), Box<dyn Error + Send + Sync>>;
 
     /// Reads the last chunk. See [`read_chunk`](Interaction::read_chunk)
     async fn read_last_chunk(&mut self) -> Result<String, FromUtf8Error> {
@@ -51,10 +54,9 @@ pub trait Interaction: AsyncReadExt + AsyncWriteExt + Unpin + Sized {
     [`TIMEOUT`](Interaction::TIMEOUT) amount of time. This does not apply to the first byte read --
     the function will wait indefinitely until it receives *some* data from the remote stream.
     */
-    async fn read_chunk(&mut self) -> Result<String, FromUtf8Error> {
+    async fn read_chunk(&mut self) -> Result<String, Box<dyn Error + Send + Sync>> {
         async {
-            Ok(String::from_utf8(vec![self.read_u8().await.unwrap()])?
-                + &self.read_last_chunk().await?)
+            Ok(String::from_utf8(vec![self.read_u8().await?])? + &self.read_last_chunk().await?)
         }
     }
 
@@ -120,9 +122,6 @@ pub trait Interaction: AsyncReadExt + AsyncWriteExt + Unpin + Sized {
     {
         self.run_with_channel(input).1
     }
-
-    /// Ends and cleans up the underlying tissue of the [Interaction].
-    async fn close(self) -> Result<(), Box<dyn Error + Send + Sync>>;
 
     /**
     Connects the [`Interaction`]'s read/write streams to [`stdin`]/[`stdout`]. Consumes the

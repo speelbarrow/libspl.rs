@@ -18,7 +18,7 @@ Feature: Byte-string manipulation
     When I repeat the first byte into an unsigned 64-bit integer
     Then the unsigned 64-bit integer should equal 0x7f7f7f7f7f7f7f7f
 
-  Rule: padding
+  Rule: Pad trait
 
     Background:
       Given a final padded byte-string length of 32

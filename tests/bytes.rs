@@ -40,9 +40,9 @@ fn given_a_final_padded_byte_string_length_of(_: &mut BytesWorld, expected: usiz
 }
 
 #[given(expr = "the byte-string {string}")]
-fn given_the_byte_string(world: &mut BytesWorld, string: String) {
+fn given_the_byte_string(BytesWorld { bytes, .. }: &mut BytesWorld, string: String) {
     assert!(string.len() < BytesWorld::FINAL);
-    (*world).bytes = string.into_bytes();
+    *bytes = string.into_bytes();
 }
 
 #[given(expr = "the unsigned 32-bit hex value {hex}")]
@@ -51,15 +51,21 @@ fn the_unsigned_bit_hex_value_x(world: &mut BytesWorld, hex: Hex<u32>) {
 }
 
 #[when(expr = "I convert the unsigned 32-bit hex value to bytes")]
-async fn i_convert_the_unsigned_bit_hex_value_to_bytes(world: &mut BytesWorld) {
-    world.bytes = world.hex.unwrap().hex_to_bytes().await
+async fn i_convert_the_unsigned_bit_hex_value_to_bytes(
+    BytesWorld { bytes, hex, .. }: &mut BytesWorld,
+) {
+    *bytes = hex.expect("hex").hex_to_bytes().await
 }
 
 #[when(regex = "I pad(?: the (left|right) side of)? the byte-string(?: with '(.)'s)?")]
-async fn when_i_pad_the_byte_string(world: &mut BytesWorld, side: String, with: String) {
+async fn when_i_pad_the_byte_string(
+    BytesWorld { bytes, .. }: &mut BytesWorld,
+    side: String,
+    with: String,
+) {
     assert!(with.bytes().count() <= 1);
     let (clone, side) = (
-        world.bytes.clone(),
+        bytes.clone(),
         match side.as_str() {
             "left" => Some(Side::Left),
             "right" => Some(Side::Right),
@@ -67,7 +73,7 @@ async fn when_i_pad_the_byte_string(world: &mut BytesWorld, side: String, with: 
             string => unreachable!("expected '', 'left' or 'right', got '{}'", string),
         },
     );
-    (*world).bytes = match (side, with.as_bytes().get(0)) {
+    *bytes = match (side, with.as_bytes().get(0)) {
         (Some(side), Some(&byte)) => clone.pad_with::<{ BytesWorld::FINAL }>(side, byte).await,
         (Some(side), None) => clone.pad(side).await,
         (None, Some(&byte)) => {
@@ -84,19 +90,30 @@ async fn when_i_pad_the_byte_string(world: &mut BytesWorld, side: String, with: 
     .to_vec();
 }
 
+#[when(expr = "I repeat the first byte into an unsigned 64-bit integer")]
+async fn i_repeat_the_first_byte_into_an_unsigned_64_bit_integer(
+    BytesWorld { bytes, integer, .. }: &mut BytesWorld,
+) {
+    *integer = Some(u64::from_repeated(bytes[0]).await);
+}
+
 #[then("the sequence of the byte-string will be")]
-fn then_the_sequence_of_the_byte_string_will_be(world: &mut BytesWorld, step: &Step) {
+fn then_the_sequence_of_the_byte_string_will_be(
+    BytesWorld { bytes, .. }: &mut BytesWorld,
+    step: &Step,
+) {
     let [expected, actual] = [
         {
             let mut r = Vec::<u8>::new();
-            for row in &step.table.as_ref().unwrap().rows {
+            for row in &step.table.as_ref().expect("table").rows {
                 if let [byte, count] = row.as_slice() {
                     let byte = match byte.trim().as_bytes() {
                         [] => 0,
                         &[byte] => byte,
                         bytes => {
-                            let trimmed =
-                                std::str::from_utf8(bytes).unwrap().trim_start_matches("0x");
+                            let trimmed = std::str::from_utf8(bytes)
+                                .expect("`&bytes` is valid UTF-8")
+                                .trim_start_matches("0x");
                             u8::from_str_radix(
                                 trimmed,
                                 if trimmed.len() != bytes.len() { 16 } else { 10 },
@@ -116,7 +133,7 @@ fn then_the_sequence_of_the_byte_string_will_be(world: &mut BytesWorld, step: &S
                                     Err(error) if matches!(error.kind(), IntErrorKind::Empty) => {
                                         todo!()
                                     }
-                                    otherwise => otherwise.unwrap(),
+                                    otherwise => otherwise.expect("otherwise"),
                                 }
                             }
                         }
@@ -127,17 +144,17 @@ fn then_the_sequence_of_the_byte_string_will_be(world: &mut BytesWorld, step: &S
             }
             r
         },
-        world.bytes.clone(),
+        bytes.clone(),
     ]
-    .map(|bytes| String::from_utf8(bytes).unwrap());
+    .map(|bytes| String::from_utf8(bytes).expect("`bytes` is valid UTF-8"));
     assert_eq!(expected, actual);
 }
 
 #[then("I should have the bytes")]
-fn i_should_have_the_bytes(world: &mut BytesWorld, step: &Step) {
-    let rows = &step.table.as_ref().unwrap().rows;
-    assert_eq!(rows.len(), world.bytes.len());
-    for (&actual, row) in world.bytes.iter().zip(rows) {
+fn i_should_have_the_bytes(BytesWorld { bytes, .. }: &mut BytesWorld, step: &Step) {
+    let rows = &step.table.as_ref().expect("table").rows;
+    assert_eq!(rows.len(), bytes.len());
+    for (&actual, row) in bytes.iter().zip(rows) {
         let cell = &row[0];
         let expected = if cell.is_empty() {
             Ok(0)
@@ -152,8 +169,11 @@ fn i_should_have_the_bytes(world: &mut BytesWorld, step: &Step) {
 }
 
 #[then(expr = "the unsigned 64-bit integer should equal {hex}")]
-fn the_unsigned_64_bit_integer_should_equal(world: &mut BytesWorld, hex: Hex<u64>) {
-    assert_eq!(*hex, world.integer.unwrap())
+fn the_unsigned_64_bit_integer_should_equal(
+    BytesWorld { integer, .. }: &mut BytesWorld,
+    hex: Hex<u64>,
+) {
+    assert_eq!(*hex, integer.expect("integer"))
 }
 
 #[tokio::main]
@@ -162,9 +182,4 @@ async fn main() {
         .fail_on_skipped()
         .run_and_exit("features/bytes.feature")
         .await
-}
-
-#[when(expr = "I repeat the first byte into an unsigned 64-bit integer")]
-async fn i_repeat_the_first_byte_into_an_unsigned_64_bit_integer(world: &mut BytesWorld) {
-    world.integer = Some(u64::from_repeated(world.bytes[0]).await);
 }
