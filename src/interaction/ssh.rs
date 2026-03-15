@@ -160,7 +160,7 @@ impl PID for SSH {
                     .unwrap()
                     .stdout,
             )
-            .unwrap();
+            .expect("`pgrep` output from remote host contained non-UTF8 characters");
             if let Some(pid) = {
                 let mut ids = grepout.split(|b| b == '\n').collect::<Vec<_>>();
                 ids.pop();

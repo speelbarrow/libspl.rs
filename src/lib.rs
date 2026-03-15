@@ -17,31 +17,15 @@ use std::{
     fmt::LowerHex,
     num::ParseIntError,
     ops::{BitOrAssign, ShlAssign},
-    string::FromUtf8Error,
 };
 
-#[derive(Debug)]
-pub enum HexToBytesError {
-    ParseError(ParseIntError),
-    UTF8Error(FromUtf8Error),
-}
-impl From<ParseIntError> for HexToBytesError {
-    fn from(error: ParseIntError) -> Self {
-        Self::ParseError(error)
-    }
-}
-impl From<FromUtf8Error> for HexToBytesError {
-    fn from(error: FromUtf8Error) -> Self {
-        Self::UTF8Error(error)
-    }
-}
 /**
 Parses a number into a [byte](u8) vector where each byte holds the value of a hex-pair from the
 input.
 */
 #[trait_variant::make(Send)]
 pub trait HexToBytes: LowerHex + Sync {
-    async fn hex_to_bytes(&self) -> Vec<u8> {
+    async fn hex_to_bytes(&self) -> Result<Vec<u8>, ParseIntError> {
         async move {
             let s = {
                 let mut r = format!("{:x}", self);
@@ -53,9 +37,12 @@ pub trait HexToBytes: LowerHex + Sync {
 
             let mut r = Vec::new();
             for chunk in s.as_bytes().chunks(2) {
-                r.push(u8::from_str_radix(&String::from_utf8(chunk.to_vec()).unwrap(), 16).unwrap())
+                r.push(u8::from_str_radix(
+                    &String::from_utf8_lossy(chunk.to_vec().as_slice()),
+                    16,
+                )?)
             }
-            r
+            Ok(r)
         }
     }
 }

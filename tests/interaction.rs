@@ -117,17 +117,11 @@ async fn when_i_read_chunk(
             }
         },
         async {
-            *chunk = Some(
-                match function.as_str() {
-                    "a" => interaction.read_chunk().await,
-                    "the last" => interaction
-                        .read_last_chunk()
-                        .await
-                        .map_err(|error| -> Box<dyn Error + Send + Sync> { Box::new(error) }),
-                    _ => unreachable!(),
-                }
-                .expect("chunk"),
-            );
+            *chunk = Some(match function.as_str() {
+                "a" => interaction.read_chunk().await.expect("chunk"),
+                "the last" => interaction.read_last_chunk().await,
+                _ => unreachable!(),
+            });
         },
     );
 }

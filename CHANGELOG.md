@@ -1,5 +1,13 @@
 # CHANGELOG
 
+### [v0.4.6](https://github.com/speelbarrow/libspl.rs/tree/v0.4.6)
+- Add 
+  [`clipboard`](https://github.com/speelbarrow/libspl.rs/blob/v0.4.6/src/interaction/mod.rs#L175)
+  [feature](https://github.com/speelbarrow/libspl.rs/blob/v0.4.6/Cargo.toml#L21)
+- Replace [Cargo tests](https://github.com/speelbarrow/libspl.rs/blob/v0.4.5/src/lib.rs#L195) with
+  [Cucumber](https://cucumber.io)
+  [tests](https://github.com/speelbarrow/libspl.rs/blob/v0.4.6/tests)
+
 ### [v0.4.5](https://github.com/speelbarrow/libspl.rs/tree/v0.4.5)
 - Adjust argument types of
 [`interaction::ssh::interact`](https://github.com/speelbarrow/libspl.rs/blob/v0.4.5/src/interaction/ssh.rs#L103)

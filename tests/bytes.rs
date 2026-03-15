@@ -54,7 +54,7 @@ fn the_unsigned_bit_hex_value_x(world: &mut BytesWorld, hex: Hex<u32>) {
 async fn i_convert_the_unsigned_bit_hex_value_to_bytes(
     BytesWorld { bytes, hex, .. }: &mut BytesWorld,
 ) {
-    *bytes = hex.expect("hex").hex_to_bytes().await
+    *bytes = hex.expect("hex").hex_to_bytes().await.expect("bytes")
 }
 
 #[when(regex = "I pad(?: the (left|right) side of)? the byte-string(?: with '(.)'s)?")]

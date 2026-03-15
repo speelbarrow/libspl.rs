@@ -1,6 +1,6 @@
 #![cfg(feature = "interaction")]
 
-use std::{error::Error, future::Future, string::FromUtf8Error, time::Duration};
+use std::{error::Error, future::Future, time::Duration};
 use tokio::{
     io::{
         AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader,
@@ -25,7 +25,7 @@ pub trait Interaction: AsyncRead + AsyncWrite + Unpin + Sized {
     async fn close(self) -> Result<(), Box<dyn Error + Send + Sync>>;
 
     /// Reads the last chunk. See [`read_chunk`](Interaction::read_chunk)
-    async fn read_last_chunk(&mut self) -> Result<String, FromUtf8Error> {
+    async fn read_last_chunk(&mut self) -> String {
         async {
             let mut buf = Vec::new();
             let mut dropped = vec![false; Self::REPEAT];
@@ -42,7 +42,7 @@ pub trait Interaction: AsyncRead + AsyncWrite + Unpin + Sized {
                                 continue 'a;
                             }
                         }
-                        return Ok(String::from_utf8(buf)?);
+                        return String::from_utf8_lossy(&buf).into_owned();
                     }
                 }
             }
@@ -56,7 +56,10 @@ pub trait Interaction: AsyncRead + AsyncWrite + Unpin + Sized {
     */
     async fn read_chunk(&mut self) -> Result<String, Box<dyn Error + Send + Sync>> {
         async {
-            Ok(String::from_utf8(vec![self.read_u8().await?])? + &self.read_last_chunk().await?)
+            Ok(
+                String::from_utf8_lossy(&[self.read_u8().await?]).into_owned()
+                    + &self.read_last_chunk().await,
+            )
         }
     }
 
@@ -95,7 +98,7 @@ pub trait Interaction: AsyncRead + AsyncWrite + Unpin + Sized {
                 r2?;
             }
 
-            let chunk = self.read_last_chunk().await?;
+            let chunk: String = self.read_last_chunk().await;
             for string in chunk.split("\n") {
                 if !sender.is_closed() {
                     sender.send(string.to_owned()).unwrap();
@@ -167,7 +170,19 @@ pub trait PID: Interaction + Send + Sync {
     async fn leak_pid(&self) -> &Self {
         async move {
             match self.get_pid().await {
-                Ok(pid) => println!("PID is {}", pid),
+                Ok(pid) => {
+                    cfg_if::cfg_if! {
+                        if #[cfg(feature = "clipboard")] {
+                            use clipboard_rs::{Clipboard, ClipboardContext};
+
+                            if let Ok(context) = ClipboardContext::new()
+                            {
+                                let _ = context.set_text(pid.to_string());
+                            }
+                        }
+                    }
+                    println!("PID is {}", pid);
+                }
                 Err(error) => println!("Failed to retrieve PID with error: {}", error),
             }
 
